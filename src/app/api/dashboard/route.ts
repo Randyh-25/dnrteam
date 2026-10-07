@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchYouTube } from "@/lib/platforms/youtube";
-import {
-  fetchFacebook,
-  fetchInstagram,
-  fetchThreads,
-} from "@/lib/platforms/meta";
-import { fetchTikTok } from "@/lib/platforms/tiktok";
+import { socialFetchers } from "@/lib/api/social";
 import { resolvePlatform } from "@/lib/cache-route";
 import { buildTotals } from "@/lib/dashboard-totals";
 import type {
@@ -22,11 +16,11 @@ const registry: Array<{
   key: PlatformKey;
   fetcher: () => Promise<PlatformStats>;
 }> = [
-  { key: "youtube", fetcher: fetchYouTube },
-  { key: "instagram", fetcher: fetchInstagram },
-  { key: "facebook", fetcher: fetchFacebook },
-  { key: "threads", fetcher: fetchThreads },
-  { key: "tiktok", fetcher: fetchTikTok },
+  { key: "youtube", fetcher: socialFetchers.youtube },
+  { key: "instagram", fetcher: socialFetchers.instagram },
+  { key: "facebook", fetcher: socialFetchers.facebook },
+  { key: "threads", fetcher: socialFetchers.threads },
+  { key: "tiktok", fetcher: socialFetchers.tiktok },
 ];
 
 /**

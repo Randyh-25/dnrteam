@@ -44,6 +44,15 @@ export function getDb(): Firestore | null {
       initializeApp({ credential: cert(serviceAccount) });
     }
     db = getFirestore();
+    // Platform payloads contain optional fields (e.g. change24h, views) that
+    // may be undefined. Firestore rejects undefined by default, which would
+    // silently drop cache writes — so ignore them. This must run before the
+    // first query; guard it so a re-used instance (HMR) doesn't throw.
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // Settings already applied to this instance — safe to ignore.
+    }
     return db;
   } catch (error) {
     lastError =

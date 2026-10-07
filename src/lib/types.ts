@@ -78,6 +78,35 @@ export interface HistoryResponse {
   days: number;
 }
 
+/** Absolute day-over-day difference for a single platform's metrics. */
+export interface PlatformGrowth {
+  followers: number | null;
+  views: number | null;
+  posts: number | null;
+  engagementRate: number | null;
+}
+
+/** Map of platform key → its day-over-day growth. */
+export type StatsGrowth = Record<PlatformKey, PlatformGrowth>;
+
+/** A persisted `social_stats/{YYYY-MM-DD}` daily snapshot. */
+export interface DailyStats {
+  date: string;
+  platforms: PlatformStats[];
+  updatedAt: string;
+}
+
+/**
+ * Response shape for `GET /api/stats`:
+ * today's stats, yesterday's stats (or null), and their differences.
+ */
+export interface StatsComparisonResponse {
+  current: DailyStats;
+  previous: DailyStats | null;
+  growth: StatsGrowth;
+  cached: boolean;
+}
+
 /** Subset of a Firestore snapshot document. */
 export interface SnapshotDoc {
   platform: PlatformKey;

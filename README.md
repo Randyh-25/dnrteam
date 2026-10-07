@@ -31,10 +31,10 @@ See [`.env.example`](./.env.example) for the full list:
 | Variable | Purpose |
 | --- | --- |
 | `YOUTUBE_API_KEY`, `YOUTUBE_CHANNEL_ID` | YouTube Data API v3 (channel ID, legacy username, or `@handle`) |
-| `META_ACCESS_TOKEN` | Long-lived token for Facebook / Instagram / Threads |
-| `FB_PAGE_ID`, `IG_USER_ID`, `THREADS_USER_ID` | Meta resource IDs |
-| `RAPIDAPI_KEY`, `TIKTOK_USERNAME` | TikTok via RapidAPI aggregator |
-| `RAPIDAPI_TIKTOK_HOST` | Optional aggregator host override |
+| `RAPIDAPI_KEY` | Single RapidAPI key shared by Instagram / Facebook / Threads / TikTok |
+| `RAPIDAPI_HOST_INSTAGRAM`, `RAPIDAPI_HOST_FACEBOOK` | RapidAPI vendors for IG / FB |
+| `RAPIDAPI_HOST_THREADS`, `RAPIDAPI_HOST_TIKTOK` | RapidAPI vendors for Threads / TikTok |
+| `INSTAGRAM_USERNAME`, `FACEBOOK_PAGE_URL`, `THREADS_USERNAME`, `TIKTOK_USERNAME` | Accounts to look up |
 | `REVALIDATE_TIME` | Cache TTL in seconds (defaults to `10800` = 3h) |
 | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Firebase Admin service account |
 
@@ -46,7 +46,8 @@ configured, the app runs in no-cache mode.
 
 | Route | Description |
 | --- | --- |
-| `GET /api/dashboard` | Aggregated platform stats + KPI totals (used by the UI) |
+| `GET /api/stats` | **Historical analytics**: `social_stats/{YYYY-MM-DD}` cache → fresh fetch → returns `{ current, previous, growth }` day-over-day comparison |
+| `GET /api/dashboard` | Per-platform stats + KPI totals (used by the UI) |
 | `GET /api/history?days=30` | Pivoted daily snapshots for the growth chart |
 | `GET /api/youtube` | YouTube channel stats |
 | `GET /api/meta[?platform=]` | Facebook / Instagram / Threads stats |
@@ -62,11 +63,13 @@ Every route follows the same flow:
 1. Read `cache/{platform}` from Firestore.
 2. If it exists and `updatedAt` is younger than the TTL → return it.
 3. Otherwise fetch fresh data, then persist it.
-4. Each fresh fetch also upserts a `snapshots/{platform}_{YYYY-MM-DD}` document,
-   which `/api/history` pivots into the growth chart.
+4. Each fresh fetch also upserts a daily snapshot under
+   `snapshots/{platform}/days/{YYYY-MM-DD}`, which `/api/history` pivots into
+   the growth chart.
 
-A composite index on `snapshots(platform ASC, date ASC)` is required; it is
-declared in [`firestore.indexes.json`](./firestore.indexes.json).
+Snapshots are stored as a per-platform subcollection so the range query uses
+Firestore's automatic single-field index — **no composite index needs to be
+created manually**.
 
 ## Scripts
 
@@ -82,6 +85,4 @@ npm test        # unit tests (cache/growth logic)
 1. Push the repository to GitHub and import it in Vercel.
 2. Add every variable from `.env.example` in **Project → Settings → Environment
    Variables** (use the real service-account values).
-3. Create the Firestore composite index (Firebase Console → Firestore → Indexes,
-   or `firebase deploy --only firestore:indexes`).
-4. Deploy — the API routes run on the Node.js runtime and auto-scale.
+3. Deploy — the API routes run on the Node.js runtime and auto-scale.

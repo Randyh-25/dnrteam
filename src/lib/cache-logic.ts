@@ -1,4 +1,10 @@
-import type { HistoryPoint, PlatformKey } from "@/lib/types";
+import type {
+  HistoryPoint,
+  PlatformGrowth,
+  PlatformKey,
+  PlatformStats,
+  StatsGrowth,
+} from "@/lib/types";
 
 /**
  * Pure cache/aggregation logic, kept free of Firebase and Next.js imports so
@@ -8,6 +14,61 @@ import type { HistoryPoint, PlatformKey } from "@/lib/types";
 /** UTC `YYYY-MM-DD` key used for daily snapshots. */
 export function dateKey(date: Date = new Date()): string {
   return date.toISOString().slice(0, 10);
+}
+
+/** UTC `YYYY-MM-DD` key for the day before `from` (defaults to today). */
+export function yesterdayKey(from: Date = new Date()): string {
+  const d = new Date(from);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return dateKey(d);
+}
+
+/** Numeric metrics used for day-over-day growth. */
+export interface MetricSet {
+  followers?: number;
+  views?: number;
+  posts?: number;
+  engagementRate?: number;
+}
+
+/** Absolute difference between two optional metrics (`null` when either is missing). */
+function diff(current?: number, previous?: number): number | null {
+  if (typeof current !== "number" || typeof previous !== "number") return null;
+  return Number((current - previous).toFixed(4));
+}
+
+/** Difference for a single platform between today and a baseline. */
+export function computePlatformGrowth(
+  current: MetricSet,
+  previous: MetricSet | undefined
+): PlatformGrowth {
+  return {
+    followers: diff(current.followers, previous?.followers),
+    views: diff(current.views, previous?.views),
+    posts: diff(current.posts, previous?.posts),
+    engagementRate: diff(current.engagementRate, previous?.engagementRate),
+  };
+}
+
+/**
+ * Difference for every platform between two days. Platforms absent from
+ * `previous` get `null` metrics (handled gracefully).
+ */
+export function computeStatsGrowth(
+  current: PlatformStats[],
+  previous: PlatformStats[]
+): StatsGrowth {
+  const previousByPlatform = new Map(previous.map((p) => [p.platform, p]));
+  const growth = {} as StatsGrowth;
+
+  for (const platform of current) {
+    growth[platform.platform] = computePlatformGrowth(
+      platform,
+      previousByPlatform.get(platform.platform)
+    );
+  }
+
+  return growth;
 }
 
 /** True when `updatedMs` is within `ttlSeconds` of `nowMs`. */

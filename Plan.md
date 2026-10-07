@@ -28,8 +28,8 @@ A unified Next.js dashboard deployed on Vercel to monitor follower growth, engag
 
 ## 4. API Strategy
 *   **YouTube:** YouTube Data API v3 (Direct API Key).
-*   **Meta (Instagram, Facebook, Threads):** Meta Graph API (Long-lived Access Token).
-*   **TikTok:** RapidAPI / Apify Aggregator (API Key for third-party).
+*   **Instagram, Facebook, Threads:** RapidAPI vendors (`RAPIDAPI_HOST_INSTAGRAM` / `_FACEBOOK` / `_THREADS`) using a shared `RAPIDAPI_KEY`.
+*   **TikTok:** RapidAPI aggregator (`RAPIDAPI_HOST_TIKTOK`).
 
 ## 5. Firestore Caching & History Strategy
 All API routes follow this logic:
@@ -40,6 +40,16 @@ All API routes follow this logic:
 5.  **Return** the fresh data to the client.
 
 Each daily snapshot is also preserved as a historical record, enabling growth charts over time.
+
+### 5.1 Daily analytics & growth comparison (`/api/stats`)
+*   Documents live in `social_stats` with the **date as the document ID** (`YYYY-MM-DD`, UTC).
+*   On a cache hit the stored document is used as `current`; otherwise fresh data is fetched and
+    upserted with `set(..., { merge: true })`.
+*   **Yesterday's** document (`YYYY-MM-DD` − 1 day) is fetched as the baseline `previous`.
+*   A `growth` object is produced per platform by subtracting each metric
+    (`followers`, `views`, `posts`, `engagementRate`) from yesterday's value.
+*   If yesterday's document is missing, growth metrics are `null` (handled gracefully).
+*   Response shape: `{ current, previous, growth, cached }`.
 
 ---
 
@@ -84,3 +94,22 @@ Each daily snapshot is also preserved as a historical record, enabling growth ch
 - [x] Build historical growth chart using Firestore daily snapshots.
 - [x] Final responsive / dark-mode QA pass.
 - [ ] Deploy to Vercel and map environment variables.
+
+### Phase 7: Backend & Caching Hardening
+- [x] Firebase Admin init (`lib/firebase.ts`) with private-key `\n` parsing and single-init guard.
+- [x] Unified caching utility with day-keyed document + `REVALIDATE_TIME` (3h) TTL check.
+- [x] Day-based document IDs: `social_stats/{YYYY-MM-DD}` (UTC).
+- [x] `getDailyStats()` / `setDailyStats()` helpers (`merge: true`) backed by `social_stats`.
+- [x] Unified fetching service `lib/api/social.ts` (YouTube official API + RapidAPI vendors).
+- [x] Shared RapidAPI helper (`lib/platforms/rapidapi.ts`) with auth headers + error normalisation.
+- [x] Route handler `app/api/stats/route.ts`: cache check → `Promise.allSettled` fetchers → upsert.
+- [x] Enable `ignoreUndefinedProperties` so optional fields don't drop cache writes.
+- [x] Verify cache hit (`cached: true`) within the 3h window and write on miss.
+
+### Phase 8: Historical Analytics & Daily Growth Comparison
+- [x] Compute yesterday's date key (`yesterdayKey`, UTC, month/year safe).
+- [x] Fetch yesterday's `social_stats` document as the comparison baseline.
+- [x] Per-metric growth calculation (`followers`, `views`, `posts`, `engagementRate`).
+- [x] Graceful handling when yesterday's document is missing (growth metrics → `null`).
+- [x] `/api/stats` response restructured to `{ current, previous, growth, cached }`.
+- [x] Unit tests for date math and growth comparisons (14 tests passing).

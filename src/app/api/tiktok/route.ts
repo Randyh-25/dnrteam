@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchTikTok } from "@/lib/platforms/tiktok";
+import { socialFetchers } from "@/lib/api/social";
 import { resolvePlatform } from "@/lib/cache-route";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const maxDuration = 30;
  */
 export async function GET(request: Request) {
   const force = new URL(request.url).searchParams.get("force") === "1";
-  const data = await resolvePlatform("tiktok", fetchTikTok, { force });
+  const data = await resolvePlatform("tiktok", socialFetchers.tiktok, { force });
 
   return NextResponse.json(
     { data },

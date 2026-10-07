@@ -2,15 +2,25 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   computeGrowth,
+  computePlatformGrowth,
+  computeStatsGrowth,
   dateKey,
   isFresh,
   percentChange,
   pivotHistory,
+  yesterdayKey,
 } from "../src/lib/cache-logic.ts";
+import type { PlatformStats } from "../src/lib/types.ts";
 
 test("dateKey returns UTC YYYY-MM-DD", () => {
   assert.equal(dateKey(new Date("2026-10-06T23:30:00Z")), "2026-10-06");
   assert.equal(dateKey(new Date("2026-01-01T00:00:00Z")), "2026-01-01");
+});
+
+test("yesterdayKey subtracts one UTC day (month/year boundaries)", () => {
+  assert.equal(yesterdayKey(new Date("2026-10-06T12:00:00Z")), "2026-10-05");
+  assert.equal(yesterdayKey(new Date("2026-10-01T00:00:00Z")), "2026-09-30");
+  assert.equal(yesterdayKey(new Date("2026-01-01T00:00:00Z")), "2025-12-31");
 });
 
 test("isFresh: cached data within the 3h TTL is fresh", () => {
@@ -75,4 +85,61 @@ test("pivotHistory merges platforms into one sorted row per date", () => {
     { date: "2026-10-05", youtube: 90 },
     { date: "2026-10-06", youtube: 100, tiktok: 50 },
   ]);
+});
+
+test("computePlatformGrowth diffs every metric", () => {
+  const growth = computePlatformGrowth(
+    { followers: 120, views: 500, posts: 12, engagementRate: 3.5 },
+    { followers: 100, views: 450, posts: 10, engagementRate: 3.1 }
+  );
+  assert.deepEqual(growth, {
+    followers: 20,
+    views: 50,
+    posts: 2,
+    engagementRate: 0.4,
+  });
+});
+
+test("computePlatformGrowth returns null metrics when values are missing", () => {
+  const growth = computePlatformGrowth(
+    { followers: 120 },
+    { followers: 100 }
+  );
+  assert.deepEqual(growth, {
+    followers: 20,
+    views: null,
+    posts: null,
+    engagementRate: null,
+  });
+});
+
+test("computePlatformGrowth handles a missing previous day", () => {
+  const growth = computePlatformGrowth({ followers: 120 }, undefined);
+  assert.deepEqual(growth, {
+    followers: null,
+    views: null,
+    posts: null,
+    engagementRate: null,
+  });
+});
+
+test("computeStatsGrowth builds per-platform growth and nulls absent platforms", () => {
+  const make = (
+    platform: PlatformStats["platform"],
+    followers: number
+  ): PlatformStats => ({
+    platform,
+    followers,
+    status: "online",
+    updatedAt: "2026-10-06T00:00:00.000Z",
+  });
+
+  const current = [make("youtube", 120), make("tiktok", 60)];
+  const previous = [make("youtube", 100)];
+
+  const growth = computeStatsGrowth(current, previous);
+  assert.equal(growth.youtube.followers, 20);
+  // tiktok had no baseline yesterday → null, not an error.
+  assert.equal(growth.tiktok.followers, null);
+  assert.equal(growth.tiktok.views, null);
 });

@@ -6,7 +6,12 @@ import {
   isFresh,
   percentChange,
 } from "@/lib/cache-logic";
-import type { PlatformKey, SnapshotDoc, PlatformStats } from "@/lib/types";
+import type {
+  DailyStats,
+  PlatformKey,
+  SnapshotDoc,
+  PlatformStats,
+} from "@/lib/types";
 
 /**
  * Firestore cache + historical snapshot layer.
@@ -29,6 +34,9 @@ export const CACHE_TTL_SECONDS = (() => {
 
 const CACHE_COLLECTION = "cache";
 const SNAPSHOT_COLLECTION = "snapshots";
+const SNAPSHOT_DAYS_SUBCOLLECTION = "days";
+/** Unified, day-keyed stats document requested by the project brief. */
+const SOCIAL_STATS_COLLECTION = "social_stats";
 
 interface CacheDocument {
   platform: PlatformKey;
@@ -142,8 +150,14 @@ export async function setPlatform(
     const batch = db.batch();
     batch.set(db.collection(CACHE_COLLECTION).doc(platform), cacheDoc);
     // Merge so multiple refreshes in a day keep one row per day.
+    // Stored as a per-platform subcollection: snapshots/{platform}/days/{date}.
+    // This keeps history queries to a single indexed field (no composite index).
     batch.set(
-      db.collection(SNAPSHOT_COLLECTION).doc(`${platform}_${snapshot.date}`),
+      db
+        .collection(SNAPSHOT_COLLECTION)
+        .doc(platform)
+        .collection(SNAPSHOT_DAYS_SUBCOLLECTION)
+        .doc(snapshot.date),
       snapshot,
       { merge: true }
     );
@@ -188,9 +202,12 @@ export async function getSnapshots(
   since.setUTCDate(since.getUTCDate() - days);
 
   try {
+    // Per-platform subcollection: a single-field range + orderBy on `date`
+    // uses Firestore's automatic single-field index (no composite index).
     const snap = await db
       .collection(SNAPSHOT_COLLECTION)
-      .where("platform", "==", platform)
+      .doc(platform)
+      .collection(SNAPSHOT_DAYS_SUBCOLLECTION)
       .where("date", ">=", dateKey(since))
       .orderBy("date", "asc")
       .get();
@@ -198,7 +215,7 @@ export async function getSnapshots(
     return snap.docs.map((d) => {
       const data = d.data() as SnapshotDoc;
       return {
-        platform: data.platform,
+        platform,
         date: data.date,
         followers: data.followers ?? 0,
       };
@@ -226,5 +243,70 @@ export async function attachGrowth(
     return { ...payload, ...growth };
   } catch {
     return payload;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Day-keyed unified cache (`social_stats/{YYYY-MM-DD}`).
+ *
+ * Implements the exact contract from the brief:
+ *  - Documents use the date (`YYYY-MM-DD`, UTC) as the ID.
+ *  - `getDailyStats` returns the doc for a given date regardless of age (used
+ *    to fetch today's cache and yesterday's baseline); freshness is decided by
+ *    the caller via `isFresh`.
+ *  - `setDailyStats` upserts with `merge: true` and a fresh `updatedAt`.
+ * ------------------------------------------------------------------------- */
+
+interface DailyStatsDocument {
+  date: string;
+  platforms: PlatformStats[];
+  updatedAt: Timestamp | null;
+}
+
+/** Returns the `social_stats` document for `date`, or `null` if absent. */
+export async function getDailyStats(date: string): Promise<DailyStats | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  try {
+    const snap = await db.collection(SOCIAL_STATS_COLLECTION).doc(date).get();
+    if (!snap.exists) return null;
+
+    const doc = snap.data() as DailyStatsDocument | undefined;
+    const updatedMs = toMillis(doc?.updatedAt);
+    if (!doc?.platforms || updatedMs === null) return null;
+
+    return {
+      date: doc.date ?? date,
+      platforms: doc.platforms,
+      updatedAt: new Date(updatedMs).toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Upserts (merge) the given date's stats with a fresh `updatedAt` timestamp. */
+export async function setDailyStats(
+  date: string,
+  platforms: PlatformStats[]
+): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+
+  try {
+    await db
+      .collection(SOCIAL_STATS_COLLECTION)
+      .doc(date)
+      .set(
+        {
+          date,
+          platforms,
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
+  } catch {
+    // Persistence failures are non-fatal for the request.
   }
 }

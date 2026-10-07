@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  fetchFacebook,
-  fetchInstagram,
-  fetchThreads,
-} from "@/lib/platforms/meta";
+import { socialFetchers } from "@/lib/api/social";
 import { resolvePlatform } from "@/lib/cache-route";
 import type { PlatformKey, PlatformStats } from "@/lib/types";
 
@@ -15,9 +11,9 @@ const fetchers: Record<
   Extract<PlatformKey, "facebook" | "instagram" | "threads">,
   () => Promise<PlatformStats>
 > = {
-  facebook: fetchFacebook,
-  instagram: fetchInstagram,
-  threads: fetchThreads,
+  facebook: socialFetchers.facebook,
+  instagram: socialFetchers.instagram,
+  threads: socialFetchers.threads,
 };
 
 /**
