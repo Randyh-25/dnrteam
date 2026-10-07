@@ -126,3 +126,62 @@ Each daily snapshot is also preserved as a historical record, enabling growth ch
 - [x] Unify snapshot writes in `setDailyStats` so `/api/stats` and `/api/analytics` share one history source.
 - [x] Only persist snapshots for `online` platforms (error payloads no longer distort history).
 - [x] Purge fabricated seed data; analytics now reflects real API values.
+
+### Phase 10: Connected Accounts & OAuth
+- [x] OAuth architecture (provider adapters + generic cloud routes under `/api/auth/[platform]/*`).
+- [x] Connected account data model (`connected_accounts` collection, owner-scoped, token-free public projection).
+- [x] OAuth state/CSRF protection (HMAC-signed state, validated before code exchange).
+- [x] YouTube OAuth (Google, `youtube.readonly` + `yt-analytics.readonly`, offline refresh).
+- [x] Meta OAuth (Facebook Login, long-lived token exchange).
+- [x] Instagram account discovery (from `/me/accounts` → `instagram_business_account`).
+- [x] Facebook Page discovery (`/me/accounts`).
+- [x] Threads connection (Threads API OAuth, long-lived token + refresh).
+- [x] TikTok OAuth (Login Kit v2, refresh support).
+- [x] Secure token storage (AES-256-GCM at rest; tokens never returned to client).
+- [x] Token refresh/reconnect handling (`resolveAccessToken` refreshes on expiry; `reauth_required` state).
+- [x] Connected Accounts settings UI (connect / reconnect / disconnect, status, last sync).
+- [x] Disconnect/reconnect flow (+ best-effort provider revocation).
+- [x] Platform cards use connected accounts for detail data.
+- [x] Platform detail pages use connected accounts (`/api/platform/[platform]`).
+
+### Phase 11: Content-Level Analytics
+- [x] Normalized content data model (`NormalizedContent` / `NormalizedPlatformDetail`).
+- [x] YouTube content analytics (uploads playlist + video statistics).
+- [x] Instagram content analytics (media + like/comment counts).
+- [x] Facebook content analytics (posts + reactions/comments/shares).
+- [x] Threads content analytics (posts + optional insights).
+- [x] TikTok content analytics (video list, gated by `video.list` approval).
+- [x] Content caching (`content_cache`, 1-hour TTL, per account + day).
+- [x] Content sorting (newest / views / likes / comments / engagement).
+- [x] Pagination/load more (limit 12 → 50).
+- [x] External content links.
+- [x] Platform-specific unavailable metric handling ("N/A" + documented notes).
+
+### Phase 12: Report Generator
+- [x] Report UI (`/report`).
+- [x] Date range selection (7 / 30 / 90 / custom).
+- [x] Platform selection.
+- [x] Metric selection.
+- [x] Executive summary (audience, views, content, engagement, growth).
+- [x] Platform comparison table.
+- [x] Growth charts (merged follower series).
+- [x] Best-performing content (by views, likes, comments, engagement).
+- [x] CSV export.
+- [x] Print/PDF-ready report (print styles, sidebar/header hidden).
+- [x] Report verification against dashboard (shared `buildPlatformAnalytics` + normalized details; unit-tested).
+
+### Phase 10-12 Limitations (documented, not faked)
+- [x] OAuth flows require real provider credentials (Google/Meta/Threads/TikTok) — UI shows "not configured" until set.
+- [x] Instagram personal accounts are unsupported (professional accounts only).
+- [x] Threads follower/insights require `threads_manage_insights` (pre-approval).
+- [x] TikTok `user.info.stats` + `video.list` require app pre-approval.
+- [x] Facebook reach/impressions need Page Insights (`pages_read_engagement`) — shown as unavailable.
+
+### Phase 10-12 Verification
+- [x] TypeScript typecheck passes (`tsc --noEmit`).
+- [x] ESLint passes (0 errors, 0 warnings).
+- [x] Unit tests pass (28 tests: date/growth + OAuth state/crypto + report building).
+- [x] Production build passes (all routes compiled).
+- [x] No `NEXT_PUBLIC_` secrets; no tokens returned by any route or rendered in the DOM.
+- [x] `firestore.rules` deny all client access (server-only Admin SDK).
+- [x] Disconnected platforms return `not_connected` (409) with no fabricated data.

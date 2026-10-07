@@ -11,6 +11,8 @@
 !.yarn/versions
 
 endpoint.txt
+
+/.opencode
 # testing
 /coverage
 

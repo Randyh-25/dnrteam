@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Header } from "@/components/header";
 import { useStats } from "@/components/platforms/use-stats";
 import { PLATFORM_META, PLATFORM_ORDER } from "@/lib/platform-meta";
 import { formatCompact, formatDateTime } from "@/lib/format";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ChevronRight } from "lucide-react";
 import type { PlatformGrowth, PlatformStats } from "@/lib/types";
 
 const IDENTIFIER: Record<string, string> = {
@@ -74,16 +75,21 @@ export default function PlatformsPage() {
                 const growth: PlatformGrowth | undefined =
                   data?.growth?.[key];
                 return (
-                  <PlatformDetailCard
+                  <Link
                     key={key}
-                    platformKey={key}
-                    label={meta.label}
-                    color={meta.color}
-                    icon={meta.icon}
-                    stats={stats}
-                    growth={growth}
-                    delay={i + 1}
-                  />
+                    href={`/platforms/${key}`}
+                    className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+                  >
+                    <PlatformDetailCard
+                      platformKey={key}
+                      label={meta.label}
+                      color={meta.color}
+                      icon={meta.icon}
+                      stats={stats}
+                      growth={growth}
+                      delay={i + 1}
+                    />
+                  </Link>
                 );
               })}
         </div>
@@ -158,13 +164,16 @@ function PlatformDetailCard({
             </p>
           </div>
         </div>
-        <span
-          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-            online ? "badge-online" : "badge-error"
-          }`}
-        >
-          {online ? "● Live" : "● Error"}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+              online ? "badge-online" : "badge-error"
+            }`}
+          >
+            {online ? "● Live" : "● Error"}
+          </span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </div>
       </div>
 
       {!online ? (

@@ -7,6 +7,7 @@ import {
   Globe,
   Settings,
   TrendingUp,
+  FileText,
   ChevronLeft,
   ChevronRight,
   X,
@@ -17,6 +18,7 @@ const navItems = [
   { label: "Overview", href: "/", icon: LayoutDashboard },
   { label: "Platforms", href: "/platforms", icon: Globe },
   { label: "Analytics", href: "/analytics", icon: TrendingUp },
+  { label: "Report", href: "/report", icon: FileText },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

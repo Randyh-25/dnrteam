@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Firestore security rules for the Gen Tyz dashboard.
+//
+// All application access goes through server-side Next.js route handlers using
+// the Firebase Admin SDK (service account), which BYPASSES these rules. No
+// browser/client SDK is used anywhere in the app.
+//
+// Therefore the safest posture is to deny all direct client access. This
+// guarantees OAuth token documents in `connected_accounts`, `oauth_pending`,
+// and `content_cache` can never be read or written from a browser, even if a
+// client key were ever leaked.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
