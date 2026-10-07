@@ -122,3 +122,7 @@ Each daily snapshot is also preserved as a historical record, enabling growth ch
 - [x] Single-metric area trend charts (Recharts) per platform + retry/empty states.
 - [x] Shared `lib/platform-meta.ts` (icon/label/colour) reused by Overview + Analytics.
 - [x] Verify metric switching, range switching, and API filters live.
+- [x] Platforms page: full per-platform detail cards (followers/views/posts/engagement + day-over-day deltas).
+- [x] Unify snapshot writes in `setDailyStats` so `/api/stats` and `/api/analytics` share one history source.
+- [x] Only persist snapshots for `online` platforms (error payloads no longer distort history).
+- [x] Purge fabricated seed data; analytics now reflects real API values.

@@ -292,7 +292,11 @@ export async function getDailyStats(date: string): Promise<DailyStats | null> {
   }
 }
 
-/** Upserts (merge) the given date's stats with a fresh `updatedAt` timestamp. */
+/**
+ * Upserts (merge) the given date's stats with a fresh `updatedAt` timestamp,
+ * and records each platform's daily snapshot so the analytics series stays in
+ * sync no matter which endpoint triggered the fetch.
+ */
 export async function setDailyStats(
   date: string,
   platforms: PlatformStats[]
@@ -301,17 +305,39 @@ export async function setDailyStats(
   if (!db) return;
 
   try {
-    await db
-      .collection(SOCIAL_STATS_COLLECTION)
-      .doc(date)
-      .set(
-        {
-          date,
-          platforms,
-          updatedAt: Timestamp.now(),
-        },
+    const batch = db.batch();
+    batch.set(
+      db.collection(SOCIAL_STATS_COLLECTION).doc(date),
+      { date, platforms, updatedAt: Timestamp.now() },
+      { merge: true }
+    );
+
+    for (const platform of platforms) {
+      // Only successful fetches are recorded as history, so error payloads
+      // (followers = 0) never distort the growth series.
+      if (platform.status !== "online") continue;
+
+      const snapshot: SnapshotDoc = {
+        platform: platform.platform,
+        date,
+        followers: platform.followers,
+        views: platform.views ?? null,
+        posts: platform.posts ?? null,
+        engagementRate: platform.engagementRate ?? null,
+        capturedAt: new Date().toISOString(),
+      };
+      batch.set(
+        db
+          .collection(SNAPSHOT_COLLECTION)
+          .doc(platform.platform)
+          .collection(SNAPSHOT_DAYS_SUBCOLLECTION)
+          .doc(date),
+        snapshot,
         { merge: true }
       );
+    }
+
+    await batch.commit();
   } catch {
     // Persistence failures are non-fatal for the request.
   }
