@@ -34,7 +34,7 @@ See [`.env.example`](./.env.example) for the full list:
 | `RAPIDAPI_KEY` | Single RapidAPI key shared by Instagram / Facebook / Threads / TikTok |
 | `RAPIDAPI_HOST_INSTAGRAM`, `RAPIDAPI_HOST_FACEBOOK` | RapidAPI vendors for IG / FB |
 | `RAPIDAPI_HOST_THREADS`, `RAPIDAPI_HOST_TIKTOK` | RapidAPI vendors for Threads / TikTok |
-| `INSTAGRAM_USERNAME`, `FACEBOOK_PAGE_URL`, `THREADS_USERNAME`, `TIKTOK_USERNAME` | Accounts to look up |
+| `INSTAGRAM_USERNAME`, `FACEBOOK_PROFILE_URL`, `THREADS_USERNAME`, `TIKTOK_USERNAME` | Accounts to look up (FB accepts a public profile or page URL) |
 | `REVALIDATE_TIME` | Cache TTL in seconds (defaults to `10800` = 3h) |
 | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Firebase Admin service account |
 
@@ -47,6 +47,7 @@ configured, the app runs in no-cache mode.
 | Route | Description |
 | --- | --- |
 | `GET /api/stats` | **Historical analytics**: `social_stats/{YYYY-MM-DD}` cache → fresh fetch → returns `{ current, previous, growth }` day-over-day comparison |
+| `GET /api/analytics?days=30[&platform=]` | **Per-platform analytics**: full metric timeline + latest values + windowed change |
 | `GET /api/dashboard` | Per-platform stats + KPI totals (used by the UI) |
 | `GET /api/history?days=30` | Pivoted daily snapshots for the growth chart |
 | `GET /api/youtube` | YouTube channel stats |

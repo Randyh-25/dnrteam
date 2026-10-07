@@ -1,7 +1,9 @@
 import type {
   HistoryPoint,
+  PlatformAnalytics,
   PlatformGrowth,
   PlatformKey,
+  PlatformSeriesPoint,
   PlatformStats,
   StatsGrowth,
 } from "@/lib/types";
@@ -136,4 +138,65 @@ export function pivotHistory(
   return Array.from(byDate.values()).sort((a, b) =>
     a.date.localeCompare(b.date)
   );
+}
+
+/* ------------------------- Per-platform analytics ------------------------- */
+
+export interface SeriesInput {
+  date: string;
+  followers: number;
+  views?: number;
+  posts?: number;
+  engagementRate?: number;
+}
+
+/**
+ * Builds the analyser payload for one platform from its ascending snapshots.
+ * Handles a single data point (change → null) and missing metrics gracefully.
+ */
+export function buildPlatformAnalytics(
+  platform: PlatformKey,
+  snapshots: SeriesInput[]
+): PlatformAnalytics {
+  const series: PlatformSeriesPoint[] = snapshots.map((s) => ({
+    date: s.date,
+    followers: s.followers,
+    views: s.views ?? null,
+    posts: s.posts ?? null,
+    engagementRate: s.engagementRate ?? null,
+  }));
+
+  const first = snapshots[0];
+  const last = snapshots[snapshots.length - 1];
+
+  const metricChange = (
+    pick: (s: SeriesInput) => number | undefined
+  ): number | null => {
+    if (snapshots.length < 2) return null;
+    const a = pick(first);
+    const b = pick(last);
+    if (typeof a !== "number" || typeof b !== "number") return null;
+    return Number((b - a).toFixed(4));
+  };
+
+  return {
+    platform,
+    series,
+    latest: {
+      followers: last?.followers ?? 0,
+      views: last?.views ?? null,
+      posts: last?.posts ?? null,
+      engagementRate: last?.engagementRate ?? null,
+    },
+    change: {
+      followers: metricChange((s) => s.followers),
+      views: metricChange((s) => s.views),
+      posts: metricChange((s) => s.posts),
+      engagementRate: metricChange((s) => s.engagementRate),
+    },
+    followersChangePct:
+      snapshots.length < 2
+        ? null
+        : percentChange(last?.followers ?? 0, first?.followers) ?? null,
+  };
 }

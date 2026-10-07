@@ -107,6 +107,42 @@ export interface StatsComparisonResponse {
   cached: boolean;
 }
 
+/** One platform's metric series used by the analytics page. */
+export interface PlatformSeriesPoint {
+  date: string;
+  followers: number;
+  views: number | null;
+  posts: number | null;
+  engagementRate: number | null;
+}
+
+/** Per-platform analytics payload returned by `GET /api/analytics`. */
+export interface PlatformAnalytics {
+  platform: PlatformKey;
+  series: PlatformSeriesPoint[];
+  /** Latest value for each metric (or null when unknown). */
+  latest: {
+    followers: number;
+    views: number | null;
+    posts: number | null;
+    engagementRate: number | null;
+  };
+  /** Absolute change over the reported window (latest − earliest). */
+  change: {
+    followers: number | null;
+    views: number | null;
+    posts: number | null;
+    engagementRate: number | null;
+  };
+  /** Percent change in followers over the window. */
+  followersChangePct: number | null;
+}
+
+export interface AnalyticsResponse {
+  data: PlatformAnalytics[];
+  days: number;
+}
+
 /** Subset of a Firestore snapshot document. */
 export interface SnapshotDoc {
   platform: PlatformKey;

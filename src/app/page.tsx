@@ -12,35 +12,8 @@ import {
 } from "@/components/dashboard/growth-chart";
 import { useDashboard } from "@/components/dashboard/use-dashboard";
 import { formatCompact, formatDateTime } from "@/lib/format";
-import type { PlatformKey, PlatformStats } from "@/lib/types";
-import {
-  YoutubeIcon,
-  InstagramIcon,
-  FacebookIcon,
-  ThreadsIcon,
-  TikTokIcon,
-  type BrandIconProps,
-} from "@/components/dashboard/brand-icons";
-import { type ComponentType } from "react";
-
-const PLATFORM_META: Record<
-  PlatformKey,
-  { label: string; icon: ComponentType<BrandIconProps>; color: string }
-> = {
-  youtube: { label: "YouTube", icon: YoutubeIcon, color: "#FF0000" },
-  instagram: { label: "Instagram", icon: InstagramIcon, color: "#E4405F" },
-  facebook: { label: "Facebook", icon: FacebookIcon, color: "#1877F2" },
-  threads: { label: "Threads", icon: ThreadsIcon, color: "#999999" },
-  tiktok: { label: "TikTok", icon: TikTokIcon, color: "#00F2EA" },
-};
-
-const PLATFORM_ORDER: PlatformKey[] = [
-  "youtube",
-  "instagram",
-  "facebook",
-  "threads",
-  "tiktok",
-];
+import type { PlatformStats } from "@/lib/types";
+import { PLATFORM_META, PLATFORM_ORDER } from "@/lib/platform-meta";
 
 function growthFor(stats: PlatformStats): { value: number; label: string } {
   if (typeof stats.change24h === "number") {

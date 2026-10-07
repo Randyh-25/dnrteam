@@ -112,4 +112,13 @@ Each daily snapshot is also preserved as a historical record, enabling growth ch
 - [x] Per-metric growth calculation (`followers`, `views`, `posts`, `engagementRate`).
 - [x] Graceful handling when yesterday's document is missing (growth metrics → `null`).
 - [x] `/api/stats` response restructured to `{ current, previous, growth, cached }`.
-- [x] Unit tests for date math and growth comparisons (14 tests passing).
+- [x] Unit tests for date math and growth comparisons (17 tests passing).
+
+### Phase 9: Per-Platform Analytics
+- [x] Extend snapshots to persist all metrics (`views`, `posts`, `engagementRate`).
+- [x] Pure `buildPlatformAnalytics()` builder (series, latest, windowed change, % change).
+- [x] `app/api/analytics/route.ts` with `?days=` window and `?platform=` filter.
+- [x] Analytics page with per-platform cards, metric switcher, and 7D/30D/90D range selector.
+- [x] Single-metric area trend charts (Recharts) per platform + retry/empty states.
+- [x] Shared `lib/platform-meta.ts` (icon/label/colour) reused by Overview + Analytics.
+- [x] Verify metric switching, range switching, and API filters live.

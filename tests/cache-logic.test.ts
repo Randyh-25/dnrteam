@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildPlatformAnalytics,
   computeGrowth,
   computePlatformGrowth,
   computeStatsGrowth,
@@ -142,4 +143,49 @@ test("computeStatsGrowth builds per-platform growth and nulls absent platforms",
   // tiktok had no baseline yesterday → null, not an error.
   assert.equal(growth.tiktok.followers, null);
   assert.equal(growth.tiktok.views, null);
+});
+
+test("buildPlatformAnalytics builds series, latest, change and percent", () => {
+  const result = buildPlatformAnalytics("youtube", [
+    { date: "2026-10-04", followers: 100, views: 1000, posts: 10, engagementRate: 2 },
+    { date: "2026-10-05", followers: 110, views: 1200, posts: 11, engagementRate: 2.5 },
+    { date: "2026-10-06", followers: 120, views: 1500, posts: 12, engagementRate: 3 },
+  ]);
+
+  assert.deepEqual(result.latest, {
+    followers: 120,
+    views: 1500,
+    posts: 12,
+    engagementRate: 3,
+  });
+  assert.deepEqual(result.change, {
+    followers: 20,
+    views: 500,
+    posts: 2,
+    engagementRate: 1,
+  });
+  assert.equal(result.followersChangePct, 20);
+  assert.equal(result.series.length, 3);
+});
+
+test("buildPlatformAnalytics nulls change with a single data point", () => {
+  const result = buildPlatformAnalytics("tiktok", [
+    { date: "2026-10-06", followers: 6, posts: 6, views: 119 },
+  ]);
+  assert.equal(result.followersChangePct, null);
+  assert.deepEqual(result.change, {
+    followers: null,
+    views: null,
+    posts: null,
+    engagementRate: null,
+  });
+  // Missing views/posts/engagement on the input become null.
+  assert.equal(result.latest.engagementRate, null);
+});
+
+test("buildPlatformAnalytics handles an empty series", () => {
+  const result = buildPlatformAnalytics("facebook", []);
+  assert.deepEqual(result.series, []);
+  assert.equal(result.latest.followers, 0);
+  assert.equal(result.followersChangePct, null);
 });

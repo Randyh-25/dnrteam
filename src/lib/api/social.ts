@@ -32,75 +32,86 @@ const fail = (platform: PlatformStats["platform"], error: string): PlatformStats
 
 /* ---------------------------- Instagram (RapidAPI) ---------------------------- */
 
-interface CommunityResponse {
-  meta?: { code?: number; message?: string };
-  data?: {
-    name?: string;
-    screenName?: string;
-    usersCount?: number;
-    postsCount?: number;
-    avgER?: number;
-    avgViews?: number;
-  };
+/**
+ * Instagram via `instagram-looter2` (`GET /profile?username=`).
+ * Follower count lives at `edge_followed_by.count`.
+ */
+interface IgProfileResponse {
+  username?: string;
+  full_name?: string;
+  is_private?: boolean;
+  edge_followed_by?: { count?: number };
+  edge_follow?: { count?: number };
+  edge_owner_to_timeline_media?: { count?: number };
 }
 
 export async function fetchInstagram(): Promise<PlatformStats> {
   const username = process.env.INSTAGRAM_USERNAME;
   if (!username) return fail("instagram", "INSTAGRAM_USERNAME is not configured");
 
-  const url = `https://www.instagram.com/${username.replace(/^@/, "")}/`;
-  const result = await rapidGet<CommunityResponse>(
+  const result = await rapidGet<IgProfileResponse>(
     process.env.RAPIDAPI_HOST_INSTAGRAM,
-    "/community",
-    { url }
+    "/profile",
+    { username: username.replace(/^@/, "") }
   );
 
-  if (!result.ok || !result.data?.data) {
+  const data = result.data;
+  if (!result.ok || !data || data.edge_followed_by?.count === undefined) {
     return fail("instagram", result.error || "Instagram profile not found");
   }
 
-  const d = result.data.data;
   return ok("instagram", {
-    followers: toNumber(d.usersCount) ?? 0,
-    posts: toNumber(d.postsCount),
-    // The vendor returns avgER already as a percentage (e.g. 2.24 = 2.24%).
-    engagementRate:
-      typeof d.avgER === "number" ? Number(d.avgER.toFixed(2)) : undefined,
+    followers: toNumber(data.edge_followed_by?.count) ?? 0,
+    posts: toNumber(data.edge_owner_to_timeline_media?.count),
   });
 }
 
 /* ---------------------------- Facebook (RapidAPI) ----------------------------- */
 
 /**
- * Facebook is resolved via the same vendor's `/community` endpoint, which
- * accepts a public Page URL. Personal profiles (`profile.php?id=`) are not
- * readable by the scraper and will surface as an error badge.
+ * Facebook via `facebook-scraper3` (`GET /page/details?url=`).
+ *
+ * Despite the route name, this endpoint resolves a public **profile or page**
+ * URL and returns its social counts (`followers`, `following`). The dedicated
+ * `/profile/*` endpoints expose profile metadata only — no follower count — so
+ * we use `/page/details` with the configured URL.
  */
-export async function fetchFacebook(): Promise<PlatformStats> {
-  const pageUrl = process.env.FACEBOOK_PAGE_URL;
-  if (!pageUrl) return fail("facebook", "FACEBOOK_PAGE_URL is not configured");
+interface FbPageDetailsResponse {
+  results?: {
+    name?: string;
+    type?: string;
+    followers?: number | null;
+    likes?: number | null;
+    following?: number | null;
+  };
+}
 
-  const result = await rapidGet<CommunityResponse>(
+export async function fetchFacebook(): Promise<PlatformStats> {
+  const profileUrl =
+    process.env.FACEBOOK_PROFILE_URL ?? process.env.FACEBOOK_PAGE_URL;
+  if (!profileUrl) {
+    return fail("facebook", "FACEBOOK_PROFILE_URL is not configured");
+  }
+
+  const result = await rapidGet<FbPageDetailsResponse>(
     process.env.RAPIDAPI_HOST_FACEBOOK,
-    "/community",
-    { url: pageUrl }
+    "/page/details",
+    { url: profileUrl }
   );
 
-  if (!result.ok || !result.data?.data) {
+  const details = result.data?.results;
+  if (!result.ok || !details) {
     return fail(
       "facebook",
       result.error ||
-        "Facebook page not readable (personal profiles are unsupported)"
+        "Facebook profile not readable (must be a public profile/page)"
     );
   }
 
-  const d = result.data.data;
+  const followers = toNumber(details.followers) ?? toNumber(details.likes) ?? 0;
+
   return ok("facebook", {
-    followers: toNumber(d.usersCount) ?? 0,
-    posts: toNumber(d.postsCount),
-    // The vendor returns avgER already as a percentage (e.g. 2.24 = 2.24%).
-    engagementRate:
-      typeof d.avgER === "number" ? Number(d.avgER.toFixed(2)) : undefined,
+    followers,
   });
 }
 

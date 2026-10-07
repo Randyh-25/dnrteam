@@ -188,6 +188,9 @@ export interface RawSnapshot {
   platform: PlatformKey;
   date: string;
   followers: number;
+  views?: number;
+  posts?: number;
+  engagementRate?: number;
 }
 
 /** Reads all snapshots for a platform within the last `days` days, newest last. */
@@ -218,6 +221,9 @@ export async function getSnapshots(
         platform,
         date: data.date,
         followers: data.followers ?? 0,
+        views: data.views ?? undefined,
+        posts: data.posts ?? undefined,
+        engagementRate: data.engagementRate ?? undefined,
       };
     });
   } catch {
