@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DNR Team — Social Media Dashboard",
+  title: "Gen Tyz — Social Media Dashboard",
   description:
     "Monitor follower growth, engagement, and content performance across YouTube, Instagram, Facebook, Threads, and TikTok.",
 };

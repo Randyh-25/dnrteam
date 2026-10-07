@@ -1,4 +1,4 @@
-# DNR Team — Social Media Dashboard
+# Gen Tyz — Social Media Dashboard
 
 A unified Next.js dashboard for monitoring follower growth, engagement, and
 content performance across **YouTube, Instagram, Facebook, Threads, and

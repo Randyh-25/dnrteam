@@ -1,6 +1,6 @@
 import { Globe } from "lucide-react";
 
-export const metadata = { title: "Platforms — DNR Team" };
+export const metadata = { title: "Platforms — Gen Tyz" };
 
 export default function PlatformsPage() {
   return (

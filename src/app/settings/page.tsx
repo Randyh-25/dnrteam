@@ -1,6 +1,6 @@
 import { Settings } from "lucide-react";
 
-export const metadata = { title: "Settings — DNR Team" };
+export const metadata = { title: "Settings — Gen Tyz" };
 
 const envVars = [
   { key: "YOUTUBE_API_KEY", label: "YouTube Data API key" },

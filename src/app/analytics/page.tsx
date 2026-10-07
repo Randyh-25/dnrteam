@@ -1,6 +1,6 @@
 import { TrendingUp } from "lucide-react";
 
-export const metadata = { title: "Analytics — DNR Team" };
+export const metadata = { title: "Analytics — Gen Tyz" };
 
 export default function AnalyticsPage() {
   return (

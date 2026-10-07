@@ -56,7 +56,7 @@ export function Sidebar() {
               collapsed ? "md:hidden" : ""
             }`}
           >
-            DNR Team
+            Gen Tyz
           </span>
           <button
             onClick={() => setMobileOpen(false)}
